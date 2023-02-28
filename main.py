@@ -1,6 +1,7 @@
 import datetime
 from dotenv import load_dotenv
 import os
+from vkbottle import BaseStateGroup
 from vkbottle.bot import Bot, Message
 import pygsheets
 
@@ -11,11 +12,18 @@ list1 = sheet[0]
 bot = Bot(os.environ['vk_api_key'])
 
 
-@bot.on.private_message()
-async def any_message(message: Message):
-    if message.text.lower() in ('привет', 'хай', 'ку', 'хеллоу', 'hi', 'hello'):
-        await message.answer("Даров, как дела?")
-        return
+class HAYState(BaseStateGroup):
+    ANSWERING = 0
+
+
+@bot.on.private_message(lev="/askme")
+async def askme_handle(message: Message):
+    await bot.state_dispenser.set(message.peer_id, HAYState.ANSWERING)
+    return "ну давай пожалуйся мне"
+
+
+@bot.on.private_message(state=HAYState.ANSWERING)
+async def askme_continue_handler(message: Message):
     user = await message.get_user()
     try:
         list1.append_table((
@@ -26,6 +34,13 @@ async def any_message(message: Message):
         ))
     except Exception as e:
         print(e)
-    await message.answer("Ясно, а щас как дела?")
+
+    await bot.state_dispenser.delete(message.peer_id)
+    return 'я тебя услышал и мне похуй.'
+
+
+@bot.on.private_message()
+async def any_message(message: Message):
+    return "Введи команду блять. Например: /askme"
 
 bot.run_forever()
