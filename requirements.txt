@@ -1,0 +1,3 @@
+vkbottle
+pygsheets
+python-dotenv
